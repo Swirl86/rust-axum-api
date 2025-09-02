@@ -1,0 +1,8 @@
+[serve]
+public_url = "/"
+port = 8080
+
+[[serve.proxies]]
+source = "/api/"
+destination = "http://127.0.0.1:3000/"
+strip_prefix = true

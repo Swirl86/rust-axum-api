@@ -1,21 +1,35 @@
 use axum::{extract::State, Json, http::StatusCode};
 use crate::models::{Product, CartItem, EditCartItemPayload, DeleteCartItemPayload};
 use crate::state::AppState;
-use serde_json::json;
+use serde_json::{json, Value};
 
-/// Fetch products from Fake Store API
-pub async fn get_products() -> Result<Json<Vec<Product>>, (axum::http::StatusCode, String)> {
+// Fetch products from Fake Store API
+pub async fn get_products() -> Result<Json<Vec<Product>>, (StatusCode, Json<Value>)> {
     let url = "https://fakestoreapi.com/products";
-    let res = reqwest::get(url).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let products: Vec<Product> = res.json().await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let res = reqwest::get(url).await.map_err(|e| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({ "error": format!("Failed to fetch products: {}", e) }))
+    ))?;
+
+    let products: Vec<Product> = res.json().await.map_err(|e| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({ "error": format!("Failed to parse products: {}", e) }))
+    ))?;
+
+    //println!("Fetched products: {:#?}", products);
+    println!("Fetched products success");
     Ok(Json(products))
 }
 
-pub async fn get_cart(State(state): State<AppState>) -> Json<Vec<CartItem>> {
-    let cart = state.cart.lock().unwrap();
-    Json(cart.clone())
+pub async fn get_cart(State(state): State<AppState>) -> Result<Json<Vec<CartItem>>, (StatusCode, Json<serde_json::Value>)> {
+    match state.cart.lock() {
+        Ok(cart) => Ok(Json(cart.clone())),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": format!("Failed to access cart: {}", e) }))
+        )),
+    }
 }
-
 
 pub async fn add_to_cart(
     State(state): State<AppState>,
@@ -31,6 +45,7 @@ pub async fn add_to_cart(
 
     Json(json!({ "status": "added to cart" }))
 }
+
 // Edit quantity of a product in the cart
 pub async fn edit_cart_item(
     State(state): State<AppState>,
