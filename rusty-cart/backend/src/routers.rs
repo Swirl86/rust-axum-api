@@ -17,7 +17,6 @@ pub async fn get_products() -> Result<Json<Vec<Product>>, (StatusCode, Json<Valu
     ))?;
 
     //println!("Fetched products: {:#?}", products);
-    println!("Fetched products success");
     Ok(Json(products))
 }
 

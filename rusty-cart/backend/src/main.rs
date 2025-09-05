@@ -1,4 +1,4 @@
-use axum::{routing::{get, post}, Router};
+use axum::{routing::{get, post}, http::Method, Router};
 use tower_http::cors::{CorsLayer, Any};
 use state::AppState;
 use routers::{get_products, get_cart, add_to_cart, edit_cart_item, delete_cart_item};
@@ -12,8 +12,10 @@ mod state;
 async fn main() {
     let app_state = AppState::new();
 
-    // Create CORS layer that allows all origins
-    let cors = CorsLayer::new().allow_origin(Any);
+    let cors = CorsLayer::new()
+    .allow_origin(Any)
+    .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+    .allow_headers(Any);
 
     let app = Router::new()
         .route("/products", get(get_products))

@@ -94,6 +94,7 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "http 0.2.12",
  "hyper 0.14.32",
  "reqwest",
  "serde",
