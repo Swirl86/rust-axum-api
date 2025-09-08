@@ -21,3 +21,8 @@ pub struct EditCartItemPayload {
     pub product_id: u32,
     pub quantity: u32,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct DeleteCartItemPayload {
+    pub product_id: u32,
+}

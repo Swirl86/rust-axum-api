@@ -3,7 +3,7 @@ use wasm_bindgen_futures::spawn_local;
 use gloo_net::http::Request;
 use gloo::console::{log, error};
 
-use crate::models::{Product, CartItem, EditCartItemPayload};
+use crate::models::{Product, CartItem, EditCartItemPayload, DeleteCartItemPayload};
 use crate::components::{ProductCard, CartItemCard};
 
 const BACKEND_URL: &str = "http://127.0.0.1:3000";
@@ -11,6 +11,7 @@ const PRODUCTS_ENDPOINT: &str = "/products";
 const CART_ENDPOINT: &str = "/cart";
 const ADD_TO_CART_ENDPOINT: &str = "/cart/add";
 const EDIT_CART_ENDPOINT: &str = "/cart/edit";
+const DELETE_FROM_CART_ENDPOINT: &str = "/cart/delete";
 
 async fn fetch_json<T: serde::de::DeserializeOwned>(url: &str) -> Result<T, String> {
     match Request::get(url).send().await {
@@ -141,6 +142,32 @@ pub fn rusty_cart() -> Html {
         }
     };
 
+    let delete_cart_item = {
+        let cart = cart.clone();
+        move |product_id: u32| {
+            let cart = cart.clone();
+            spawn_local(async move {
+                let payload = DeleteCartItemPayload { product_id };
+                let req = Request::post(&format!("{BACKEND_URL}{DELETE_FROM_CART_ENDPOINT}"))
+                    .header("Content-Type", "application/json")
+                    .body(serde_json::to_string(&payload).unwrap())
+                    .unwrap();
+
+                match req.send().await {
+                    Ok(resp) if resp.ok() => {
+                        cart.set({
+                            let mut new_cart = (*cart).clone();
+                            new_cart.retain(|i| i.product.id != product_id);
+                            new_cart
+                        });
+                    }
+                    Ok(resp) => error!(format!("Failed to delete product {}: server returned {}", product_id, resp.status())),
+                    Err(err) => error!(format!("Failed to delete product {}: {:?}", product_id, err)),
+                }
+            });
+        }
+    };
+
     let total: f64 = (*cart).iter().map(|item| item.product.price * item.quantity as f64).sum();
 
     html! {
@@ -197,7 +224,12 @@ pub fn rusty_cart() -> Html {
                                     { for (*cart).iter().enumerate().map(|(i, item)| {
                                         let edit_cart_item = edit_cart_item.clone();
                                         html! {
-                                            <CartItemCard item={item.clone()} index={i} on_edit={edit_cart_item.clone()} />
+                                            <CartItemCard
+                                                item={item.clone()}
+                                                index={i}
+                                                on_edit={edit_cart_item.clone()}
+                                                on_delete={delete_cart_item.clone()}
+                                            />
                                         }
                                     }) }
                                 </ul>

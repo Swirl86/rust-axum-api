@@ -7,12 +7,14 @@ pub struct CartItemCardProps {
     pub item: CartItem,
     pub index: usize,
     pub on_edit: Callback<(u32, u32)>,
+    pub on_delete: Callback<u32>,
 }
 
 #[function_component(CartItemCard)]
 pub fn cart_item_card(props: &CartItemCardProps) -> Html {
     let item = props.item.clone();
     let on_edit = props.on_edit.clone();
+    let on_delete = props.on_delete.clone();
 
     let editing = use_state(|| false);
     let input_value = use_state(|| item.quantity.to_string());
@@ -33,6 +35,14 @@ pub fn cart_item_card(props: &CartItemCardProps) -> Html {
             if item.quantity > 1 {
                 on_edit.emit((item.product.id, item.quantity - 1));
             }
+        })
+    };
+
+    let delete_item = {
+        let on_delete = on_delete.clone();
+        let product_id = item.product.id;
+        Callback::from(move |_| {
+            on_delete.emit(product_id);
         })
     };
 
@@ -137,8 +147,9 @@ pub fn cart_item_card(props: &CartItemCardProps) -> Html {
                             "cursor: pointer; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: {};",
                             if *hover { "#e0e0e0" } else { "transparent" }
                         )}
+                        title="Edit quantity"
                     >
-                        { &*input_value }
+                        { item.quantity }
                     </span>
                 }
 
@@ -153,6 +164,14 @@ pub fn cart_item_card(props: &CartItemCardProps) -> Html {
                 text-overflow: ellipsis;
             ">
                 { format!("= {:.2} kr", item.product.price * item.quantity as f64) }
+            </span>
+
+            <span
+                onclick={delete_item}
+                style="cursor: pointer; margin-left: 8px; color: red;"
+                title="Remove item"
+            >
+                { "🗑️" }
             </span>
         </li>
     }
