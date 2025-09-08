@@ -15,3 +15,9 @@ pub struct CartItem {
     pub product: Product,
     pub quantity: u32,
 }
+
+#[derive(Serialize, Clone)]
+pub struct EditCartItemPayload {
+    pub product_id: u32,
+    pub quantity: u32,
+}

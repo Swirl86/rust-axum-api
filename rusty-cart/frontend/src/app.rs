@@ -3,13 +3,14 @@ use wasm_bindgen_futures::spawn_local;
 use gloo_net::http::Request;
 use gloo::console::{log, error};
 
-use crate::models::{Product, CartItem};
+use crate::models::{Product, CartItem, EditCartItemPayload};
 use crate::components::{ProductCard, CartItemCard};
 
 const BACKEND_URL: &str = "http://127.0.0.1:3000";
 const PRODUCTS_ENDPOINT: &str = "/products";
 const CART_ENDPOINT: &str = "/cart";
 const ADD_TO_CART_ENDPOINT: &str = "/cart/add";
+const EDIT_CART_ENDPOINT: &str = "/cart/edit";
 
 async fn fetch_json<T: serde::de::DeserializeOwned>(url: &str) -> Result<T, String> {
     match Request::get(url).send().await {
@@ -110,6 +111,36 @@ pub fn rusty_cart() -> Html {
         }
     };
 
+    // Edit cart item quantity
+    let edit_cart_item = {
+        let cart = cart.clone();
+        move |(product_id, quantity): (u32, u32)| {
+            let cart = cart.clone();
+            spawn_local(async move {
+                let payload = EditCartItemPayload { product_id, quantity };
+                let req = Request::post(&format!("{BACKEND_URL}{EDIT_CART_ENDPOINT}"))
+                    .header("Content-Type", "application/json")
+                    .body(serde_json::to_string(&payload).unwrap())
+                    .unwrap();
+
+                match req.send().await {
+                    Ok(resp) if resp.ok() => {
+                        log!(format!("Updated product {} quantity to {}", product_id, quantity));
+                        cart.set({
+                            let mut new_cart = (*cart).clone();
+                            if let Some(item) = new_cart.iter_mut().find(|i| i.product.id == product_id) {
+                                item.quantity = quantity;
+                            }
+                            new_cart
+                        });
+                    }
+                    Ok(resp) => error!(format!("Failed to update product {}: server returned {}", product_id, resp.status())),
+                    Err(err) => error!(format!("Failed to update product {}: {:?}", product_id, err)),
+                }
+            });
+        }
+    };
+
     let total: f64 = (*cart).iter().map(|item| item.product.price * item.quantity as f64).sum();
 
     html! {
@@ -146,7 +177,7 @@ pub fn rusty_cart() -> Html {
                 )}
             >
                 <span>{ format!("🛒 {} items", cart.len()) }</span>
-                <span>{ format!("💰 Total: {} kr", total) }</span>
+                <span>{ format!("Total: {:.2} kr", total) }</span>
             </div>
 
             if *show_cart {
@@ -163,8 +194,11 @@ pub fn rusty_cart() -> Html {
                         } else {
                             html! {
                                 <ul style="list-style: none; padding: 0; margin: 0;">
-                                    { for (*cart).iter().map(|item| html! {
-                                        <CartItemCard item={item.clone()} />
+                                    { for (*cart).iter().enumerate().map(|(i, item)| {
+                                        let edit_cart_item = edit_cart_item.clone();
+                                        html! {
+                                            <CartItemCard item={item.clone()} index={i} on_edit={edit_cart_item.clone()} />
+                                        }
                                     }) }
                                 </ul>
                             }

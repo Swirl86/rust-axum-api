@@ -10,6 +10,7 @@ gloo-net = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 gloo = { version = "0.11", features = ["console"] }
+web-sys = "0.3.78"
 
 [[bin]]
 name = "frontend"
