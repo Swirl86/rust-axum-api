@@ -5,6 +5,7 @@ use gloo::console::{log, error};
 
 use crate::models::{Product, CartItem, EditCartItemPayload, DeleteCartItemPayload};
 use crate::components::{ProductCard, CartItemCard};
+use crate::utils::{fetch_json, format_price};
 
 const BACKEND_URL: &str = "http://127.0.0.1:3000";
 const PRODUCTS_ENDPOINT: &str = "/products";
@@ -12,17 +13,6 @@ const CART_ENDPOINT: &str = "/cart";
 const ADD_TO_CART_ENDPOINT: &str = "/cart/add";
 const EDIT_CART_ENDPOINT: &str = "/cart/edit";
 const DELETE_FROM_CART_ENDPOINT: &str = "/cart/delete";
-
-async fn fetch_json<T: serde::de::DeserializeOwned>(url: &str) -> Result<T, String> {
-    match Request::get(url).send().await {
-        Ok(resp) if resp.ok() => resp.json::<T>().await.map_err(|e| format!("JSON parse error: {:?}", e)),
-        Ok(resp) => {
-            let text = resp.text().await.unwrap_or_default();
-            Err(format!("Server error {}: {}", resp.status(), text))
-        }
-        Err(e) => Err(format!("Network error: {:?}", e)),
-    }
-}
 
 #[function_component(RustyCart)]
 pub fn rusty_cart() -> Html {
@@ -204,7 +194,7 @@ pub fn rusty_cart() -> Html {
                 )}
             >
                 <span>{ format!("🛒 {} items", cart.len()) }</span>
-                <span>{ format!("Total: {:.2} kr", total) }</span>
+                <span>{ format!("💰 Total: {}", format_price(total)) }</span>
             </div>
 
             if *show_cart {

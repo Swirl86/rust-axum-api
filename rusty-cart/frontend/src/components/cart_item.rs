@@ -1,6 +1,7 @@
 use yew::prelude::*;
 use web_sys::HtmlInputElement;
 use crate::models::CartItem;
+use crate::utils::format_price;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct CartItemCardProps {
@@ -163,7 +164,7 @@ pub fn cart_item_card(props: &CartItemCardProps) -> Html {
                 overflow: hidden;
                 text-overflow: ellipsis;
             ">
-                { format!("= {:.2} kr", item.product.price * item.quantity as f64) }
+                { format_price(item.product.price * item.quantity as f64) }
             </span>
 
             <span
