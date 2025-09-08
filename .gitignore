@@ -39,3 +39,6 @@ Thumbs.db
 # Editor folders
 *.swp
 *.swo
+
+# Frontend build
+dist/
